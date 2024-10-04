@@ -2,7 +2,7 @@ import { AuthClient } from "@dfinity/auth-client";
 import { Actor, HttpAgent } from "@dfinity/agent";
 import { idlFactory } from "declarations/backend/backend.did.js";
 
-const canisterId = process.env.CANISTER_ID_BACKEND;
+const canisterId = process.env.CANISTER_ID_BACKEND || "REPLACE_WITH_ACTUAL_CANISTER_ID";
 
 let authClient;
 let actor;
@@ -16,9 +16,14 @@ const fileList = document.getElementById("fileList");
 const statusMessage = document.getElementById("statusMessage");
 
 async function init() {
-  statusMessage.textContent = "Initializing...";
+  updateStatus("Initializing...");
   try {
-    authClient = await AuthClient.create();
+    authClient = await AuthClient.create({
+      idleOptions: {
+        disableDefaultIdleCallback: true,
+        disableIdle: true
+      }
+    });
     if (await authClient.isAuthenticated()) {
       await handleAuthenticated();
     } else {
@@ -26,51 +31,53 @@ async function init() {
     }
   } catch (error) {
     console.error("Initialization error:", error);
-    statusMessage.textContent = "Error initializing. Please try again.";
+    updateStatus("Error initializing. Please refresh and try again.");
   }
-  statusMessage.textContent = "";
 }
 
 async function login() {
-  statusMessage.textContent = "Logging in...";
+  updateStatus("Logging in...");
   try {
+    const identityProvider = process.env.DFX_NETWORK === "ic" 
+      ? "https://identity.ic0.app"
+      : `http://localhost:${process.env.IDENTITY_PORT}`;
+
     await authClient.login({
-      identityProvider: "https://identity.ic0.app",
+      identityProvider,
       onSuccess: handleAuthenticated,
       onError: (error) => {
         console.error("Login error:", error);
-        statusMessage.textContent = "Login failed. Please try again.";
+        updateStatus("Login failed. Please try again.");
         updateUI(false);
       },
     });
   } catch (error) {
     console.error("Login error:", error);
-    statusMessage.textContent = "Login failed. Please try again.";
+    updateStatus("Login failed. Please try again.");
     updateUI(false);
   }
 }
 
 async function logout() {
-  statusMessage.textContent = "Logging out...";
+  updateStatus("Logging out...");
   try {
     await authClient.logout();
     actor = null;
     updateUI(false);
-    statusMessage.textContent = "Logged out successfully.";
+    updateStatus("Logged out successfully.");
   } catch (error) {
     console.error("Logout error:", error);
-    statusMessage.textContent = "Logout failed. Please try again.";
+    updateStatus("Logout failed. Please try again.");
   }
 }
 
 async function handleAuthenticated() {
-  statusMessage.textContent = "Authenticating...";
+  updateStatus("Authenticating...");
   try {
     const identity = await authClient.getIdentity();
     const agent = new HttpAgent({ identity });
     
-    // When developing locally, we need to set the local server as the host
-    if (process.env.NODE_ENV !== "production") {
+    if (process.env.DFX_NETWORK !== "ic") {
       agent.fetchRootKey().catch(err => {
         console.warn("Unable to fetch root key. Check to ensure that your local replica is running");
         console.error(err);
@@ -84,9 +91,10 @@ async function handleAuthenticated() {
 
     updateUI(true);
     await updateFileList();
+    updateStatus("Authenticated successfully.");
   } catch (error) {
     console.error("Authentication error:", error);
-    statusMessage.textContent = "Authentication failed. Please try again.";
+    updateStatus("Authentication failed. Please try again.");
     updateUI(false);
   }
 }
@@ -100,39 +108,43 @@ function updateUI(isAuthenticated) {
   }
 }
 
+function updateStatus(message) {
+  statusMessage.textContent = message;
+}
+
 async function uploadFile() {
   if (!actor) {
-    statusMessage.textContent = "Please login first";
+    updateStatus("Please login first");
     return;
   }
 
   const file = fileInput.files[0];
   if (!file) {
-    statusMessage.textContent = "Please select a file";
+    updateStatus("Please select a file");
     return;
   }
 
   if (file.size > 10 * 1024 * 1024) {
-    statusMessage.textContent = "File size exceeds 10MB limit";
+    updateStatus("File size exceeds 10MB limit");
     return;
   }
 
-  statusMessage.textContent = "Uploading file...";
+  updateStatus("Uploading file...");
   const reader = new FileReader();
   reader.onload = async (e) => {
     const content = new Uint8Array(e.target.result);
     try {
       const result = await actor.uploadFile(file.name, content);
-      statusMessage.textContent = result;
+      updateStatus(result);
       await updateFileList();
     } catch (error) {
       console.error("Upload error:", error);
-      statusMessage.textContent = "Error uploading file: " + error.message;
+      updateStatus("Error uploading file: " + error.message);
     }
   };
   reader.onerror = (error) => {
     console.error("FileReader error:", error);
-    statusMessage.textContent = "Error reading file: " + error.message;
+    updateStatus("Error reading file: " + error.message);
   };
   reader.readAsArrayBuffer(file);
 }
@@ -143,7 +155,7 @@ async function updateFileList() {
     return;
   }
 
-  statusMessage.textContent = "Fetching files...";
+  updateStatus("Fetching files...");
   try {
     const files = await actor.getMyFiles();
     fileList.innerHTML = "<h3>Your Files:</h3>";
@@ -158,11 +170,11 @@ async function updateFileList() {
       });
       fileList.appendChild(ul);
     }
-    statusMessage.textContent = "";
+    updateStatus("");
   } catch (error) {
     console.error("Error fetching files:", error);
     fileList.innerHTML = "<p>Error fetching files. Please try again later.</p>";
-    statusMessage.textContent = "Error fetching files.";
+    updateStatus("Error fetching files.");
   }
 }
 
