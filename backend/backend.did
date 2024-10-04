@@ -1,4 +1,5 @@
 service : {
   getMyFiles: () -> (vec text);
+  isAuthenticated: () -> (bool);
   uploadFile: (text, blob) -> (text);
 }

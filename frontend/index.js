@@ -1,8 +1,9 @@
 import { AuthClient } from "@dfinity/auth-client";
+import { Actor, HttpAgent } from "@dfinity/agent";
 import { backend } from "declarations/backend";
 
 let authClient;
-let identity;
+let actor;
 
 const loginButton = document.getElementById("loginButton");
 const logoutButton = document.getElementById("logoutButton");
@@ -15,6 +16,10 @@ async function init() {
   authClient = await AuthClient.create();
   if (await authClient.isAuthenticated()) {
     handleAuthenticated();
+  } else {
+    loginButton.style.display = "block";
+    logoutButton.style.display = "none";
+    uploadSection.style.display = "none";
   }
 }
 
@@ -27,14 +32,21 @@ async function login() {
 
 async function logout() {
   await authClient.logout();
+  actor = null;
   loginButton.style.display = "block";
   logoutButton.style.display = "none";
   uploadSection.style.display = "none";
   fileList.innerHTML = "";
 }
 
-function handleAuthenticated() {
-  identity = authClient.getIdentity();
+async function handleAuthenticated() {
+  const identity = authClient.getIdentity();
+  const agent = new HttpAgent({ identity });
+  actor = Actor.createActor(backend.idlFactory, {
+    agent,
+    canisterId: backend.canisterId,
+  });
+
   loginButton.style.display = "none";
   logoutButton.style.display = "block";
   uploadSection.style.display = "block";
@@ -42,6 +54,11 @@ function handleAuthenticated() {
 }
 
 async function uploadFile() {
+  if (!actor) {
+    alert("Please login first");
+    return;
+  }
+
   const file = fileInput.files[0];
   if (!file) {
     alert("Please select a file");
@@ -58,7 +75,7 @@ async function uploadFile() {
   reader.onload = async (e) => {
     const content = new Uint8Array(e.target.result);
     try {
-      const result = await backend.uploadFile(file.name, content);
+      const result = await actor.uploadFile(file.name, content);
       alert(result);
       updateFileList();
     } catch (error) {
@@ -74,8 +91,13 @@ async function uploadFile() {
 }
 
 async function updateFileList() {
+  if (!actor) {
+    fileList.innerHTML = "<p>Please login to view your files.</p>";
+    return;
+  }
+
   try {
-    const files = await backend.getMyFiles();
+    const files = await actor.getMyFiles();
     fileList.innerHTML = "<h3>Your Files:</h3>";
     if (files.length === 0) {
       fileList.innerHTML += "<p>No files uploaded yet.</p>";

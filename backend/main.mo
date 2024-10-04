@@ -1,3 +1,4 @@
+import Bool "mo:base/Bool";
 import Func "mo:base/Func";
 
 import Array "mo:base/Array";
@@ -44,7 +45,7 @@ actor {
     };
 
     files := Array.append(files, [newFile]);
-    Debug.print("File uploaded successfully: " # name);
+    Debug.print("File uploaded successfully: " # name # " by " # Principal.toText(caller));
     "File uploaded successfully"
   };
 
@@ -59,5 +60,10 @@ actor {
 
     let myFiles = Array.filter<File>(files, func(file) { file.owner == caller });
     Array.map<File, Text>(myFiles, func(file) { file.name })
+  };
+
+  // Function to check if a user is authenticated
+  public shared(msg) func isAuthenticated() : async Bool {
+    not Principal.isAnonymous(msg.caller)
   };
 }
