@@ -1,4 +1,4 @@
 service : {
-  getMyFiles: () -> (vec text);
+  getAllFiles: () -> (vec text);
   uploadFile: (text, blob) -> (text);
 }
