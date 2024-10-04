@@ -1,8 +1,45 @@
+import { AuthClient } from "@dfinity/auth-client";
 import { backend } from "declarations/backend";
 
+let authClient;
+let identity;
+
+const loginButton = document.getElementById("loginButton");
+const logoutButton = document.getElementById("logoutButton");
+const uploadSection = document.getElementById("uploadSection");
 const fileInput = document.getElementById("fileInput");
 const uploadButton = document.getElementById("uploadButton");
 const fileList = document.getElementById("fileList");
+
+async function init() {
+  authClient = await AuthClient.create();
+  if (await authClient.isAuthenticated()) {
+    handleAuthenticated();
+  }
+}
+
+async function login() {
+  await authClient.login({
+    identityProvider: "https://identity.ic0.app",
+    onSuccess: handleAuthenticated,
+  });
+}
+
+async function logout() {
+  await authClient.logout();
+  loginButton.style.display = "block";
+  logoutButton.style.display = "none";
+  uploadSection.style.display = "none";
+  fileList.innerHTML = "";
+}
+
+function handleAuthenticated() {
+  identity = authClient.getIdentity();
+  loginButton.style.display = "none";
+  logoutButton.style.display = "block";
+  uploadSection.style.display = "block";
+  updateFileList();
+}
 
 async function uploadFile() {
   const file = fileInput.files[0];
@@ -27,8 +64,8 @@ async function uploadFile() {
 
 async function updateFileList() {
   try {
-    const files = await backend.getAllFiles();
-    fileList.innerHTML = "<h3>Uploaded Files:</h3>";
+    const files = await backend.getMyFiles();
+    fileList.innerHTML = "<h3>Your Files:</h3>";
     if (files.length === 0) {
       fileList.innerHTML += "<p>No files uploaded yet.</p>";
     } else {
@@ -45,7 +82,8 @@ async function updateFileList() {
   }
 }
 
+loginButton.onclick = login;
+logoutButton.onclick = logout;
 uploadButton.onclick = uploadFile;
 
-// Initial file list update
-updateFileList();
+init();

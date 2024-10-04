@@ -3,6 +3,8 @@ import Func "mo:base/Func";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Debug "mo:base/Debug";
+import Error "mo:base/Error";
+import Principal "mo:base/Principal";
 import Text "mo:base/Text";
 
 actor {
@@ -10,16 +12,24 @@ actor {
   type File = {
     name: Text;
     content: Blob;
+    owner: Principal;
   };
 
   // Stable variable to store files
   stable var files : [File] = [];
 
   // Function to upload a file
-  public func uploadFile(name: Text, content: Blob) : async Text {
+  public shared(msg) func uploadFile(name: Text, content: Blob) : async Text {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Authentication required");
+    };
+
     let newFile : File = {
       name = name;
       content = content;
+      owner = caller;
     };
 
     files := Array.append(files, [newFile]);
@@ -27,8 +37,15 @@ actor {
     "File uploaded successfully"
   };
 
-  // Function to get all files
-  public func getAllFiles() : async [Text] {
-    Array.map<File, Text>(files, func(file) { file.name })
+  // Function to get all files for the authenticated user
+  public shared(msg) func getMyFiles() : async [Text] {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Authentication required");
+    };
+
+    let myFiles = Array.filter<File>(files, func(file) { file.owner == caller });
+    Array.map<File, Text>(myFiles, func(file) { file.name })
   };
 }

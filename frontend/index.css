@@ -20,6 +20,11 @@ h1 {
     margin-bottom: 30px;
 }
 
+#authSection {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
 #uploadSection {
     display: flex;
     justify-content: center;
@@ -34,7 +39,7 @@ h1 {
     margin-right: 10px;
 }
 
-#uploadButton {
+button {
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
@@ -45,7 +50,7 @@ h1 {
     transition: background-color 0.3s ease;
 }
 
-#uploadButton:hover {
+button:hover {
     background-color: #2980b9;
 }
 
