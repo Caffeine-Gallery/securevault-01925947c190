@@ -23,7 +23,18 @@ actor {
     let caller = msg.caller;
 
     if (Principal.isAnonymous(caller)) {
+      Debug.print("Anonymous user attempted to upload file");
       throw Error.reject("Authentication required");
+    };
+
+    if (Text.size(name) == 0) {
+      Debug.print("Attempted to upload file with empty name");
+      throw Error.reject("File name cannot be empty");
+    };
+
+    if (Blob.toArray(content).size() == 0) {
+      Debug.print("Attempted to upload empty file");
+      throw Error.reject("File content cannot be empty");
     };
 
     let newFile : File = {
@@ -33,7 +44,7 @@ actor {
     };
 
     files := Array.append(files, [newFile]);
-    Debug.print("File uploaded: " # name);
+    Debug.print("File uploaded successfully: " # name);
     "File uploaded successfully"
   };
 
@@ -42,6 +53,7 @@ actor {
     let caller = msg.caller;
 
     if (Principal.isAnonymous(caller)) {
+      Debug.print("Anonymous user attempted to retrieve files");
       throw Error.reject("Authentication required");
     };
 

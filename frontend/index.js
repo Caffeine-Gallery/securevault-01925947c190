@@ -48,6 +48,12 @@ async function uploadFile() {
     return;
   }
 
+  // Check file size (limit to 10MB for example)
+  if (file.size > 10 * 1024 * 1024) {
+    alert("File size exceeds 10MB limit");
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = async (e) => {
     const content = new Uint8Array(e.target.result);
@@ -56,8 +62,13 @@ async function uploadFile() {
       alert(result);
       updateFileList();
     } catch (error) {
+      console.error("Upload error:", error);
       alert("Error uploading file: " + error.message);
     }
+  };
+  reader.onerror = (error) => {
+    console.error("FileReader error:", error);
+    alert("Error reading file: " + error.message);
   };
   reader.readAsArrayBuffer(file);
 }
@@ -79,6 +90,7 @@ async function updateFileList() {
     }
   } catch (error) {
     console.error("Error fetching files:", error);
+    fileList.innerHTML = "<p>Error fetching files. Please try again later.</p>";
   }
 }
 
