@@ -1,6 +1,8 @@
 import { AuthClient } from "@dfinity/auth-client";
 import { Actor, HttpAgent } from "@dfinity/agent";
-import { backend } from "declarations/backend";
+import { idlFactory } from "declarations/backend/backend.did.js";
+
+const canisterId = process.env.CANISTER_ID_BACKEND;
 
 let authClient;
 let actor;
@@ -40,11 +42,12 @@ async function logout() {
 }
 
 async function handleAuthenticated() {
-  const identity = authClient.getIdentity();
+  const identity = await authClient.getIdentity();
   const agent = new HttpAgent({ identity });
-  actor = Actor.createActor(backend.idlFactory, {
+  await agent.fetchRootKey(); // This line is needed for local development only
+  actor = Actor.createActor(idlFactory, {
     agent,
-    canisterId: backend.canisterId,
+    canisterId: canisterId,
   });
 
   loginButton.style.display = "none";
