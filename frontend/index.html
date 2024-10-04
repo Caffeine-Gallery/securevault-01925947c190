@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload with Internet Identity</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div id="app">
+        <h1>File Upload with Internet Identity</h1>
+        <div id="authSection">
+            <button id="loginButton">Login with Internet Identity</button>
+            <button id="logoutButton" style="display: none;">Logout</button>
+        </div>
+        <div id="uploadSection" style="display: none;">
+            <input type="file" id="fileInput">
+            <button id="uploadButton">Upload File</button>
+        </div>
+        <div id="fileList"></div>
+    </div>
+    <script type="module" src="index.js"></script>
+</body>
+</html>
